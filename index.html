@@ -108,6 +108,8 @@ tbody tr:hover .here-btn{opacity:.7;}
 .break-timer .bt-count.warn{color:#ff5252;}
 .break-timer .bt-count.over{color:#ff5252;animation:pulse 1.2s infinite;}
 .break-timer .bt-back{text-align:center;font-size:16px;color:#7fe36a;margin-bottom:6px;}
+.break-timer .bt-x{position:absolute;top:10px;right:14px;background:none;border:none;color:#9fd8f4;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;}
+.break-timer .bt-x:hover{color:#fff;}
 .break-timer .bt-actions{display:flex;gap:8px;justify-content:center;margin-top:6px;}
 .break-timer .bt-stop{background:#0f2b4a;border:1px solid rgba(255,255,255,.25);color:#cfeeff;border-radius:9px;padding:7px 16px;cursor:pointer;font-size:12.5px;font-weight:600;}
 .break-timer .bt-stop:hover{border-color:#f2b134;}
@@ -192,7 +194,7 @@ function render(){
     const usStart=isBuf?'':(usS!==null?minToStr(usS):(s.est||'')), usEnd=isBuf?'':(usS!==null?minToStr(usS+d):'');
     const inStart=isBuf?'':(inS!==null?minToStr(inS):(s.ist||'')), inEnd=isBuf?'':(inS!==null?minToStr(inS+d):'');
     rows+='<tr class="type-'+s.type+(now?' now':'')+'">'+
-      '<td><div class="topic">'+(s.type==='placeholder'?'<span class="ph-label">Open — TBD</span>':s.topic)+(now?'<span class="now-badge">now</span>':'')+(s.type==='break'?' <button class="timer-btn" title="Start break timer" onclick="startBreak(event,'+durMin(s.duration)+')">\u23F1</button>':'')+((s.type==='session'&&usS!==null)?' <button class="here-btn" title="Set this as where we are now" onclick="setHere(event,'+usS+')">\u25B6</button>':'')+'</div></td>'+
+      '<td><div class="topic">'+(s.type==='placeholder'?'<span class="ph-label">Open — TBD</span>':s.topic)+(now?'<span class="now-badge">now</span>':'')+(s.type==='break'?' <button class="timer-btn" title="Start break timer" onclick="startBreak(event,'+durMin(s.duration)+')">\u23F1</button>':'')+((s.type==='session'&&usS!==null)?' <button class="here-btn" title="Set this as the topic we are currently on" onclick="setHere(event,'+(usS+durMin(s.duration))+')">\u25B6</button>':'')+'</div></td>'+
       '<td class="outcome-cell">'+(s.outcome||'')+'</td>'+
       '<td class="time tabnums">'+usStart+'</td>'+
       '<td class="time tabnums">'+usEnd+'</td>'+
@@ -241,10 +243,12 @@ function renderStatus(){
     '<button class="st-reset" onclick="resetOffset()">reset to clock</button>';
   el.style.display='block';
 }
-window.setHere=function(ev, schedStartMin){
+window.setHere=function(ev, schedEndMin){
   if(ev){ev.stopPropagation();}
   const n=tzNow(-240); const realNow=n.getHours()*60+n.getMinutes();
-  setOffset(schedStartMin - realNow);
+  // If the topic should have ended (schedEndMin) but real clock is past that, we're behind.
+  // offset = schedEndMin - realNow  (negative = behind, positive = ahead)
+  setOffset(schedEndMin - realNow);
   renderStatus(); render();
 };
 window.adjustOffset=function(delta){ setOffset(getOffset()+delta); renderStatus(); render(); };
@@ -300,12 +304,14 @@ window.resetOffset=function(){ delete OFFSETS[offKey()]; document.getElementById
     _btTarget=t;
     render(); if(_btInt) clearInterval(_btInt); _btInt=setInterval(render,1000);
     function render(){
-      const b=bar(); if(!_btTarget) return;
+      const b=bar(); if(!_btTarget){ return; }
       const diff=Math.round((_btTarget-new Date())/1000);
-      const over=diff<0; const a=Math.abs(diff);
+      const over=diff<0; let a=Math.abs(diff);
+      if(over && a>3599){ a=3599; } // cap the "over" display at 59:59 so it never balloons
       const mm=Math.floor(a/60), ss=a%60;
       const warn = !over && diff<=120;
-      b.innerHTML='<div class="bt-back">Back at '+fmt12(targetMin)+'</div>'+
+      b.innerHTML='<button class="bt-x" onclick="stopBreak()" title="Close">\u2715</button>'+
+        '<div class="bt-back">Back at '+fmt12(targetMin)+(over?' · overtime':'')+'</div>'+
         '<div class="bt-count'+(over?' over':(warn?' warn':''))+'">'+(over?'+':'')+mm+':'+String(ss).padStart(2,'0')+'</div>'+
         '<div class="bt-actions"><button class="bt-stop" onclick="stopBreak()">Done</button></div>';
     }
