@@ -290,9 +290,16 @@ function render(){
     '<th class="tz ist-col"><span class="flag">🇮🇳</span>IST Start</th><th class="tz ist-col">IST End</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>';
   renderStatus();
-  // Event banner: cleared for now (add back closer to PI)
+  // Event banner: After PI Activity on in-person Day 2
   const eb=document.getElementById('event-banner');
-  if(eb){ eb.innerHTML=''; }
+  if(eb){
+    if(sec.id==='pi264' && activeDay===1){
+      eb.innerHTML='<div class="event-banner"><div class="eb-skyline"></div><div class="eb-tint"></div>'+
+        '<div class="eb-icon">🎉</div>'+
+        '<div class="eb-text"><div class="eb-title">After PI Activity — TBD</div>'+
+        '<div class="eb-sub">4:00 – 7:00 PM · Details to come closer to PI Planning.</div></div></div>';
+    } else { eb.innerHTML=''; }
+  }
 }
 window.openRules=function(){ document.getElementById('rules-modal').classList.add('open'); };
 window.closeRules=function(){ document.getElementById('rules-modal').classList.remove('open'); };
